@@ -9,16 +9,14 @@ from langchain.chains import ConversationalRetrievalChain
 from langchain.memory import ConversationBufferMemory
 from langchain_community.chat_models import ChatOllama
 
-st.set_page_config(page_title="📄 Chat with PDF using Chroma DB")
-st.title("📄 RAG Chatbot with Chroma + Gemma (Ollama) + Page Source Tracking")
+st.set_page_config(page_title="RAG Chatbot")
+st.title("RAG Chatbot")
 
-# --- File hashing for unique Chroma DB path ---
 def get_file_hash(file):
     content = file.read()
     file.seek(0)
     return hashlib.md5(content).hexdigest()
 
-# --- Session state init ---
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
@@ -26,7 +24,7 @@ if "memory" not in st.session_state:
     st.session_state.memory = ConversationBufferMemory(
         memory_key="chat_history",
         return_messages=True,
-        output_key="answer"  # ✅ Fix the ValueError by specifying output_key
+        output_key="answer" 
     )
 
 if "qa_chain" not in st.session_state:
@@ -35,11 +33,9 @@ if "qa_chain" not in st.session_state:
 if "retriever" not in st.session_state:
     st.session_state.retriever = None
 
-# --- Upload PDF ---
 uploaded_file = st.file_uploader("Upload your PDF", type=["pdf"])
 user_query = st.chat_input("Ask a question...")
 
-# --- Process and embed PDF in Chroma DB ---
 if uploaded_file:
     file_hash = get_file_hash(uploaded_file)
     persist_directory = f"chroma_db/{file_hash}"
@@ -52,7 +48,6 @@ if uploaded_file:
             loader = PyPDFLoader("temp.pdf")
             documents = loader.load()
 
-            # Add page number to metadata
             for doc in documents:
                 if "page" not in doc.metadata:
                     doc.metadata["page"] = doc.metadata.get("page_number", 0)
@@ -72,7 +67,6 @@ if uploaded_file:
     else:
         st.info("Using existing Chroma index.")
 
-    # Load existing index
     embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
     vectordb = Chroma(
         persist_directory=persist_directory,
@@ -81,36 +75,33 @@ if uploaded_file:
     )
 
     st.session_state.retriever = vectordb.as_retriever()
-    llm = ChatOllama(model="gemma3:1b")  # 👈 Ensure this model is pulled via Ollama
+    llm = ChatOllama(model="gemma3:1b")  
 
     st.session_state.qa_chain = ConversationalRetrievalChain.from_llm(
         llm=llm,
         retriever=st.session_state.retriever,
         memory=st.session_state.memory,
         return_source_documents=True,
-        output_key="answer"  # ✅ Tells LangChain which output to store in memory
+        output_key="answer" 
     )
 
-# --- Run chat query ---
+
 if user_query and st.session_state.qa_chain:
     with st.spinner("Generating answer..."):
         result = st.session_state.qa_chain({"question": user_query})
         answer = result["answer"]
         sources = result.get("source_documents", [])
 
-        # Extract and display page numbers
         page_numbers = sorted({doc.metadata.get("page", "N/A") for doc in sources})
         pages_text = ", ".join(str(p) for p in page_numbers)
 
-        # Append to chat history
+        
         st.session_state.chat_history.append(("You", user_query))
-        st.session_state.chat_history.append(("Gemma", f"{answer}\n\n📄 **Sources:** Page(s) {pages_text}"))
+        st.session_state.chat_history.append(("Gemma", f"{answer}\n\n **Sources:** Page(s) {pages_text}"))
 
-# --- Display full chat history ---
 for speaker, msg in st.session_state.chat_history:
     with st.chat_message(speaker):
         st.markdown(msg)
 
-# --- Clean temp file
 if os.path.exists("temp.pdf"):
     os.remove("temp.pdf")
