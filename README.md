@@ -34,8 +34,8 @@ This project is a **Retrieval-Augmented Generation (RAG) chatbot** that allows u
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/rag-chatbot.git
-cd rag-chatbot
+git clone https://github.com/nitinbharadwajnataraj/RAG-Chatbot.git
+cd RAG-Chatbot
 ```
 
 ### 2. Install Dependencies
@@ -103,9 +103,3 @@ Temporary files like `temp.pdf` are automatically deleted after processing.
 
 - Ensure Ollama is running in the background before starting the Streamlit app.
 - To reset memory or clear chat history, simply restart the Streamlit app.
-
----
-
-## 📄 License
-
-This project is open-source under the [MIT License](LICENSE).
